@@ -10,3 +10,9 @@ class Recommendation(models.Model):
 
     class Meta:
         db_table = 'recommendation'
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'book_title'], name="unique_recommendation")
+        ]
+
+    def __str__(self):
+        return f"{self.user.nickname} 추천 - {self.book_title}"

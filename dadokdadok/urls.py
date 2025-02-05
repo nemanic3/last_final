@@ -1,23 +1,27 @@
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView  # ✅ JWT 관련 추가
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from review.views import LikeReviewView
 from user.views import home
 
-
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('user/', include('user.urls')),
-    path('book/', include('book.urls')),
-    path('review/', include('review.urls')),  # ✅ 단수형으로 변경
-    path('goal/', include('goal.urls')),
-    path('recommendation/', include('recommendation.urls')),
 
     # ✅ JWT 로그인 (토큰 발급 및 갱신)
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # ✅ API 엔드포인트 통일
+    path('api/user/', include('user.urls')),
+    path('api/book/', include('book.urls')),
+    path('api/review/', include('review.urls')),
+    path('api/goal/', include('goal.urls')),
+    path('api/recommendation/', include('recommendation.urls')),
 
     # ✅ 리뷰 좋아요 기능 추가
-    path('review/<int:review_id>/like/', LikeReviewView.as_view(), name='like_review'),
+    path('api/review/<int:review_id>/like/', LikeReviewView.as_view(), name='like_review'),
+
+    # ✅ API 상태 확인 엔드포인트
     path('', home, name='home'),
 ]
+

@@ -3,29 +3,23 @@ from .models import Book
 from review.models import Review
 
 class BookSerializer(serializers.ModelSerializer):
-    """
-    DB에 저장된 책 정보를 직렬화
-    """
+    """ DB에 저장된 책 정보를 직렬화 """
     class Meta:
         model = Book
         fields = ['id', 'title', 'author', 'published_date', 'isbn', 'publisher', 'image_url', 'created_at']
 
 class NaverBookSerializer(serializers.Serializer):
-    """
-    네이버 API 검색 결과를 위한 직렬화 클래스 (DB 저장 안 함)
-    """
+    """ 네이버 API 검색 결과 직렬화 (DB 저장 안 함) """
     title = serializers.CharField()
     author = serializers.CharField()
     publisher = serializers.CharField()
-    pubdate = serializers.CharField()
+    published_date = serializers.CharField(source='pubdate')
     isbn = serializers.CharField()
-    image = serializers.URLField(source='image_url')
+    image_url = serializers.URLField(source='image')
     link = serializers.URLField()
 
 class BookWithReviewSerializer(serializers.ModelSerializer):
-    """
-    최근 리뷰가 포함된 책 정보 직렬화
-    """
+    """ 최신 리뷰 포함된 책 정보 직렬화 """
     reviews = serializers.SerializerMethodField()
 
     class Meta:

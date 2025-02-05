@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model, authenticate
-from django.contrib.auth.hashers import make_password
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -8,12 +7,10 @@ from rest_framework.decorators import action
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.http import JsonResponse
 from .serializers import UserSerializer, SignupSerializer
-from django.shortcuts import redirect
-from django.shortcuts import get_object_or_404
 
 User = get_user_model()
 
-# ✅ 홈 API 추가
+# ✅ 홈 API
 def home(request):
     return JsonResponse({"message": "Welcome to DadokDadok API!"})
 
@@ -24,7 +21,7 @@ class SignupView(APIView):
     def post(self, request):
         serializer = SignupSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save(password=make_password(serializer.validated_data['password']))
+            user = serializer.save()
             return Response({"message": "Signup successful!", "user": UserSerializer(user).data}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -41,22 +38,42 @@ class LoginView(APIView):
             return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
         refresh = RefreshToken.for_user(user)
-        return Response({"message": "Login successful!", "token": str(refresh.access_token)}, status=status.HTTP_200_OK)
+        return Response({
+            "message": "Login successful!",
+            "access_token": str(refresh.access_token),
+            "refresh_token": str(refresh),
+            "user": UserSerializer(user).data
+        }, status=status.HTTP_200_OK)
 
-# ✅ 로그아웃 API (JWT는 클라이언트에서 삭제하는 방식)
+# ✅ 로그아웃 API (JWT 토큰 블랙리스트 적용 가능)
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        return Response({"message": "Successfully logged out."}, status=status.HTTP_200_OK)
+        try:
+            refresh_token = request.data["refresh_token"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()  # RefreshToken을 블랙리스트에 추가
+            return Response({"message": "Successfully logged out."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
 
-# ✅ 회원 정보 조회 및 삭제 API
+# ✅ 회원 정보 조회, 수정 및 삭제 API
 class UserViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=["get"])
     def me(self, request):
         return Response(UserSerializer(request.user).data)
+
+    @action(detail=False, methods=["put"])
+    def update_profile(self, request):
+        user = request.user
+        serializer = UserSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Profile updated successfully.", "user": serializer.data}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=["delete"])
     def delete(self, request):

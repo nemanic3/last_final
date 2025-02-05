@@ -8,7 +8,11 @@ from .serializers import ReviewSerializer, LikeSerializer, CommentSerializer
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    permission_classes = [AllowAny]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -26,9 +30,9 @@ class LikeReviewView(APIView):
 
         if not created:
             like.delete()
-            return Response({"message": "Like removed"}, status=status.HTTP_200_OK)
+            return Response({"message": "Like removed", "likes_count": review.likes.count()}, status=status.HTTP_200_OK)
 
-        return Response({"message": "Like added"}, status=status.HTTP_201_CREATED)
+        return Response({"message": "Like added", "likes_count": review.likes.count()}, status=status.HTTP_201_CREATED)
 
 class CommentView(APIView):
     permission_classes = [IsAuthenticated]
@@ -49,3 +53,11 @@ class CommentView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CommentListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, review_id):
+        comments = Comment.objects.filter(review_id=review_id).order_by("-created_at")
+        serializer = CommentSerializer(comments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

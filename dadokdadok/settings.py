@@ -9,24 +9,22 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
+import os
 from pathlib import Path
+from datetime import timedelta
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
+# ✅ SECRET_KEY (배포 시 보안 강화 필요)
 SECRET_KEY = 'django-insecure-8pv46p(-rc3hi%-7k21p-^x(k!5s2f6wen-lip92(4ei4o7$f('
 
-# SECURITY WARNING: don't run with debug turned on in production!
+# ✅ 개발 환경 설정 (배포 시 DEBUG = False 필요)
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']  # ✅ 모든 호스트에서 접근 가능하도록 설정 (배포 시 변경 필요)
+# ✅ 모든 호스트에서 접근 가능 (배포 시 특정 도메인만 허용)
+ALLOWED_HOSTS = ['*']
 
-# Application definition
+# ✅ INSTALLED_APPS 설정
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -41,7 +39,7 @@ INSTALLED_APPS = [
     'recommendation',
     'corsheaders',
     'rest_framework',
-    'rest_framework_simplejwt',  # ✅ JWT 패키지 추가
+    'rest_framework_simplejwt',
 ]
 
 MIDDLEWARE = [
@@ -51,12 +49,14 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  # ✅ CORS 미들웨어 추가
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# ✅ CORS 설정 (배포 시 특정 도메인만 허용)
+CORS_ALLOW_ALL_ORIGINS = True  # 개발 중 모든 요청 허용 (배포 시 변경)
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # ✅ 프론트엔드 React 서버 URL 변경 (필요 시 수정)
+    "http://localhost:3000",
 ]
 
 ROOT_URLCONF = 'dadokdadok.urls'
@@ -79,7 +79,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'dadokdadok.wsgi.application'
 
-# Database
+# ✅ 데이터베이스 설정 (기본 SQLite 사용)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -87,7 +87,7 @@ DATABASES = {
     }
 }
 
-# Password validation
+# ✅ 비밀번호 검증 설정
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -95,36 +95,45 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
+# ✅ 언어 및 시간대 설정
 LANGUAGE_CODE = 'ko-kr'
 TIME_ZONE = 'Asia/Seoul'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
+# ✅ Static & Media 파일 설정
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / "static"]
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / "media"
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# ✅ 사용자 모델 설정
 AUTH_USER_MODEL = 'user.CustomUser'
 
+# ✅ REST Framework 기본 설정
 REST_FRAMEWORK = {
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-    ],
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',  # ✅ JWT 인증 적용
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',  # ✅ 기본 권한 변경
     ]
 }
 
+# ✅ JWT 설정 (토큰 만료 시간 조절)
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+}
+
+# ✅ 로그인 및 로그아웃 리디렉션 설정
 LOGIN_URL = '/user/login/'
 LOGOUT_REDIRECT_URL = '/'
 
-# 네이버 API 설정
+# ✅ 네이버 API 설정 (하드코딩된 값 유지)
 NAVER_CLIENT_ID = "XuZkPyhdBVtFtXAvM4x9"
 NAVER_CLIENT_SECRET = "qc9LqfIhrj"
 NAVER_BOOKS_API_URL = "https://openapi.naver.com/v1/search/book.json"
+

@@ -12,8 +12,21 @@ def get_book_recommendations(query, display=5):
     }
     params = {"query": query, "display": display}
 
-    response = requests.get(url, headers=headers, params=params)
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()  # 네트워크 오류 발생 시 예외 발생
 
-    if response.status_code == 200:
-        return response.json().get("items", [])
-    return []
+        data = response.json().get("items", [])
+        formatted_data = [
+            {
+                "title": book["title"],
+                "author": book.get("author", "Unknown Author"),
+                "publisher": book.get("publisher", "Unknown Publisher"),
+                "image": book.get("image", ""),
+                "link": book.get("link", ""),
+            }
+            for book in data
+        ]
+        return formatted_data
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}

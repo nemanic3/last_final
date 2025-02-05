@@ -1,29 +1,40 @@
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import status
 from .models import Recommendation
 from .serializers import RecommendationSerializer
 from .services import get_book_recommendations
 
 class RecommendationViewSet(ModelViewSet):
-    queryset = Recommendation.objects.all()
+    """
+    사용자가 직접 추가하는 추천 API (CRUD)
+    """
     serializer_class = RecommendationSerializer
-    permission_classes = [IsAuthenticated]  # 로그인한 사용자만 접근 가능
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # 인증되지 않은 사용자는 빈 queryset 반환
-        if self.request.user.is_anonymous:
-            return Recommendation.objects.none()
-        # 인증된 사용자는 자신의 추천 데이터만 반환
-        return self.queryset.filter(user=self.request.user)
+        return Recommendation.objects.filter(user=self.request.user)
 
-    def list(self, request, *args, **kwargs):
-        """
-        네이버 API를 활용한 추천 도서 리스트 반환
-        """
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class NaverRecommendationView(APIView):
+    """
+    네이버 API를 활용한 추천 도서 리스트 반환
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
         query = request.GET.get("query", "")
-        if not query:
-            return Response({"error": "검색어를 입력하세요."}, status=400)
+        display = request.GET.get("display", 5)  # 기본 5개 반환
 
-        recommended_books = get_book_recommendations(query)
-        return Response(recommended_books, status=200)
+        if not query:
+            return Response({"error": "검색어를 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            recommended_books = get_book_recommendations(query, display=int(display))
+            return Response(recommended_books, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
