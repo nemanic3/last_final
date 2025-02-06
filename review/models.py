@@ -1,12 +1,16 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from book.models import Book  # ✅ 책 모델 임포트
 
 User = get_user_model()
 
 class Review(models.Model):
+    """
+    리뷰 모델 - 사용자가 특정 책에 대해 작성한 리뷰
+    """
     id = models.BigAutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
-    book = models.ForeignKey("book.Book", on_delete=models.CASCADE, related_name="reviews")
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="reviews")
     content = models.TextField(null=True, blank=True)
     rating = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -14,11 +18,16 @@ class Review(models.Model):
 
     class Meta:
         db_table = "review"
+        unique_together = ('user', 'book')  # ✅ 같은 책에 대한 중복 리뷰 방지
 
     def __str__(self):
         return f"{self.user.username}'s review of {self.book.title}"
 
+
 class Like(models.Model):
+    """
+    좋아요 모델 - 사용자가 특정 리뷰에 좋아요를 남길 수 있음
+    """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="likes")
 
@@ -31,7 +40,11 @@ class Like(models.Model):
     def __str__(self):
         return f"{self.user.username} liked {self.review}"
 
+
 class Comment(models.Model):
+    """
+    댓글 모델 - 사용자가 리뷰에 댓글을 남길 수 있음
+    """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="comments")
     content = models.TextField()

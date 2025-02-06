@@ -1,8 +1,9 @@
 from rest_framework import serializers
 from .models import Goal
+from review.models import Review  # ✅ 리뷰 모델 가져오기
 
 class GoalSerializer(serializers.ModelSerializer):
-    progress = serializers.SerializerMethodField()
+    progress = serializers.SerializerMethodField()  # ✅ 진행률 계산 필드 추가
 
     class Meta:
         model = Goal
@@ -15,12 +16,10 @@ class GoalSerializer(serializers.ModelSerializer):
         return data
 
     def get_progress(self, obj):
-        """ 목표 진행률 계산 """
-        today = datetime.date.today()
-        total_days = (obj.end_date - obj.start_date).days
-        elapsed_days = (today - obj.start_date).days
-        if elapsed_days <= 0:
-            return 0
-        if elapsed_days >= total_days:
-            return 100
-        return round((elapsed_days / total_days) * 100, 2)
+        """ 목표 진행률 계산 (읽은 책 개수 기준) """
+        # ✅ 사용자가 리뷰를 남긴 유니크한 책 개수 계산 (중복 리뷰 제외)
+        unique_read_books = Review.objects.filter(user=obj.user).values("book").distinct().count()
+
+        # ✅ 진행률 계산 (목표 초과 허용)
+        progress = (unique_read_books / obj.total_books) * 100 if obj.total_books > 0 else 0
+        return round(progress, 2)  # ✅ 소수점 2자리까지 표시

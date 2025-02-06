@@ -3,17 +3,13 @@ from django.db import models
 from django.conf import settings
 
 class Goal(models.Model):
-    GOAL_TYPE_CHOICES = [
-        ('annual', '연간 목표'),
-        ('monthly', '월간 목표'),
-    ]
-
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    goal_type = models.CharField(max_length=10, choices=GOAL_TYPE_CHOICES, default='annual')
     start_date = models.DateField(default=datetime.date.today)
     end_date = models.DateField()
+    total_books = models.IntegerField(default=0)  # ✅ 목표 책 수
+    read_books = models.IntegerField(default=0)  # ✅ 현재까지 읽은 책 개수
     is_completed = models.BooleanField(default=False)
 
     class Meta:
