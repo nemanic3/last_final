@@ -15,13 +15,19 @@ class SignupSerializer(serializers.ModelSerializer):
         fields = ['username', 'password', 'nickname', 'email']
         extra_kwargs = {'password': {'write_only': True}}
 
-    def validate(self, data):
-        if User.objects.filter(nickname=data.get('nickname')).exists():
-            raise serializers.ValidationError({"nickname": "이미 사용 중인 닉네임입니다."})
-        if User.objects.filter(email=data.get('email')).exists():
-            raise serializers.ValidationError({"email": "이미 등록된 이메일입니다."})
-        return data
+    def validate_nickname(self, value):
+        """ 닉네임 중복 검사 """
+        if User.objects.filter(nickname=value).exists():
+            raise serializers.ValidationError("이미 사용 중인 닉네임입니다.")
+        return value
+
+    def validate_email(self, value):
+        """ 이메일 중복 검사 """
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("이미 등록된 이메일입니다.")
+        return value
 
     def create(self, validated_data):
-        validated_data['password'] = make_password(validated_data['password'])
+        """ 비밀번호 해싱 후 저장 """
+        validated_data['password'] = make_password(validated_data['password'])  # ✅ 비밀번호 해싱
         return User.objects.create(**validated_data)
