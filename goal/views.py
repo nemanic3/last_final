@@ -8,11 +8,11 @@ from django.db.models import Count
 from datetime import datetime
 from .models import Goal
 from .serializers import GoalSerializer
-from review.models import Review  # ✅ 리뷰 모델 가져오기
+from review.models import Review
 
 class GoalViewSet(ModelViewSet):
     """
-    사용자별 목표 관리 (연간 목표만 유지)
+    연간 목표 설정 (목표 책 수만 입력)
     """
     serializer_class = GoalSerializer
     permission_classes = [IsAuthenticated]
@@ -25,40 +25,32 @@ class GoalViewSet(ModelViewSet):
 
 class GoalProgressView(APIView):
     """
-    목표 진행률 조회 API (읽은 책 개수 기준)
+    목표 진행률 조회 (그래프 데이터 제공)
     """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
-        goals = Goal.objects.filter(user=user)
+        goal = Goal.objects.filter(user=user).first()
 
-        if not goals.exists():
+        if not goal:
             return Response({"error": "설정된 목표가 없습니다."}, status=404)
 
-        progress_list = []
-        for goal in goals:
-            # ✅ 사용자가 리뷰를 남긴 유니크한 책 개수 계산 (중복 리뷰 제외)
-            read_books_count = Review.objects.filter(user=user).values("book").distinct().count()
+        # ✅ 사용자가 리뷰를 남긴 유니크한 책 개수 계산 (중복 리뷰 제외)
+        read_books_count = Review.objects.filter(user=user).values("book").distinct().count()
 
-            # ✅ 진행률 계산 (목표 초과 허용)
-            progress = (read_books_count / goal.total_books) * 100 if goal.total_books > 0 else 0
+        # ✅ 진행률 계산
+        progress = (read_books_count / goal.total_books) * 100 if goal.total_books > 0 else 0
 
-            progress_list.append({
-                "goal_id": goal.id,
-                "title": goal.title,
-                "start_date": goal.start_date,
-                "end_date": goal.end_date,
-                "read_books": read_books_count,
-                "goal_books": goal.total_books,
-                "progress": f"{progress:.2f}%"
-            })
-
-        return Response(progress_list, status=200)
+        return Response({
+            "goal_books": goal.total_books,
+            "read_books": read_books_count,
+            "progress": round(progress, 2)  # ✅ 소수점 2자리
+        }, status=200)
 
 class MonthlyReadingProgressView(APIView):
     """
-    월별 독서량 및 연간 목표 진행률 조회 API
+    월별 독서량 조회 (그래프용 데이터)
     """
     permission_classes = [IsAuthenticated]
 
@@ -66,10 +58,11 @@ class MonthlyReadingProgressView(APIView):
         user = request.user
         current_year = datetime.now().year
 
-        goal = Goal.objects.filter(user=user, start_date__year=current_year).first()
+        goal = Goal.objects.filter(user=user).first()
         if not goal:
             return Response({"error": "설정된 목표가 없습니다."}, status=404)
 
+        # ✅ 리뷰 작성 날짜(created_at) 기준으로 월별 독서량 집계
         monthly_reading = (
             Review.objects.filter(user=user, created_at__year=current_year)
             .annotate(month=TruncMonth("created_at"))
@@ -78,21 +71,11 @@ class MonthlyReadingProgressView(APIView):
             .order_by("month")
         )
 
+        # ✅ YYYY-MM 형식으로 변환
         monthly_data = {entry["month"].strftime("%Y-%m"): entry["count"] for entry in monthly_reading}
 
-        total_read_books = sum(monthly_data.values())
-        goal_books = goal.total_books
-        progress = (total_read_books / goal_books) * 100 if goal_books > 0 else 0
-
         return Response({
-            "goal": {
-                "id": goal.id,
-                "title": goal.title,
-                "start_date": goal.start_date,
-                "end_date": goal.end_date,
-                "goal_books": goal_books,
-                "read_books": total_read_books,
-                "progress": f"{progress:.2f}%"
-            },
+            "goal_books": goal.total_books,
+            "read_books": sum(monthly_data.values()),
             "monthly_reading": monthly_data
         }, status=200)

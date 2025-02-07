@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from review.views import LikeReviewView
-from user.views import home
+from user.views import home  # ⚠️ `home` 뷰 함수가 `user/views.py`에 있는지 확인 필요
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -21,7 +21,8 @@ urlpatterns = [
     # ✅ 리뷰 좋아요 기능 추가
     path('api/review/<int:review_id>/like/', LikeReviewView.as_view(), name='like_review'),
 
-    # ✅ API 상태 확인 엔드포인트
+    # ✅ API 상태 확인 엔드포인트 (이 뷰 함수가 실제로 존재하는지 확인 필요)
     path('', home, name='home'),
 ]
+
 

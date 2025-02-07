@@ -6,12 +6,10 @@ from rest_framework.views import APIView
 from .models import Review, Like, Comment
 from book.models import Book
 from .serializers import ReviewSerializer, LikeSerializer, CommentSerializer
-from book.services import get_book_by_isbn_from_naver  # ✅ 네이버 API 함수 가져오기
+from book.services import get_book_by_isbn_from_naver
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    """
-    리뷰 CRUD 기능 제공
-    """
+    """ 리뷰 CRUD 기능 제공 """
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
 
@@ -21,23 +19,18 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
 
     def perform_create(self, serializer):
-        """
-        리뷰 작성 시 `isbn`을 받아서 책을 조회/생성 후 리뷰 저장
-        """
-        isbn = self.request.data.get("isbn")  # ✅ 요청 데이터에서 ISBN 가져오기
+        """ 리뷰 작성 시 `isbn`을 받아서 책을 조회/생성 후 리뷰 저장 """
+        isbn = self.request.data.get("isbn")
         if not isbn:
             raise ValidationError({"isbn": "ISBN이 필요합니다."})
 
-        # ✅ ISBN으로 책 조회 (DB에서 먼저 확인)
         book = Book.objects.filter(isbn=isbn).first()
 
-        # ✅ DB에 없으면 외부 API 호출 (네이버 API)
         if not book:
             book_data = get_book_by_isbn_from_naver(isbn)
             if not book_data:
                 raise ValidationError({"isbn": "해당 ISBN으로 책 정보를 찾을 수 없습니다."})
 
-            # ✅ 외부 API 결과를 기반으로 Book 생성
             book = Book.objects.create(
                 isbn=isbn,
                 title=book_data.get("title", "Unknown Title"),
@@ -47,20 +40,16 @@ class ReviewViewSet(viewsets.ModelViewSet):
                 image_url=book_data.get("image", ""),
             )
 
-        # ✅ 리뷰 저장
         serializer.save(user=self.request.user, book=book)
 
 
 class LikeReviewView(APIView):
-    """
-    리뷰 좋아요 기능
-    """
+    """ 리뷰 좋아요 기능 """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, review_id):
-        try:
-            review = Review.objects.get(id=review_id)
-        except Review.DoesNotExist:
+        review = Review.objects.filter(id=review_id).first()
+        if not review:
             return Response({"error": "Review not found"}, status=status.HTTP_404_NOT_FOUND)
 
         like, created = Like.objects.get_or_create(user=request.user, review=review)
@@ -71,16 +60,14 @@ class LikeReviewView(APIView):
 
         return Response({"message": "Like added", "likes_count": review.likes.count()}, status=status.HTTP_201_CREATED)
 
+
 class CommentView(APIView):
-    """
-    댓글 작성 기능
-    """
+    """ 댓글 작성 기능 """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, review_id):
-        try:
-            review = Review.objects.get(id=review_id)
-        except Review.DoesNotExist:
+        review = Review.objects.filter(id=review_id).first()
+        if not review:
             return Response({"error": "Review not found"}, status=status.HTTP_404_NOT_FOUND)
 
         data = {
@@ -94,10 +81,9 @@ class CommentView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class CommentListView(APIView):
-    """
-    특정 리뷰의 댓글 목록 조회 기능
-    """
+    """ 특정 리뷰의 댓글 목록 조회 기능 """
     permission_classes = [AllowAny]
 
     def get(self, request, review_id):
@@ -106,8 +92,8 @@ class CommentListView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-# ✅ 1️⃣ 메인 페이지 - 최신 리뷰된 책 리스트 (6개)
 class RecentReviewView(APIView):
+    """ 최신 리뷰 도서 목록 조회 (메인 페이지) """
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -117,8 +103,8 @@ class RecentReviewView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
-# ✅ 2️⃣ 내 서재 - 내가 작성한 리뷰들 (책별로)
 class MyLibraryView(APIView):
+    """ 내가 작성한 리뷰 목록 조회 (내 서재) """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -141,8 +127,8 @@ class MyLibraryView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
-# ✅ 3️⃣ 책 상세 페이지 - 특정 책의 최신 리뷰 목록
 class BookReviewsView(APIView):
+    """ 특정 책의 최신 리뷰 목록 조회 """
     permission_classes = [AllowAny]
 
     def get(self, request, book_id):
@@ -157,4 +143,3 @@ class BookReviewsView(APIView):
             for review in reviews
         ]
         return Response(data, status=status.HTTP_200_OK)
-

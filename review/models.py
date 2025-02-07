@@ -5,10 +5,7 @@ from book.models import Book  # ✅ 책 모델 임포트
 User = get_user_model()
 
 class Review(models.Model):
-    """
-    리뷰 모델 - 사용자가 특정 책에 대해 작성한 리뷰
-    """
-    id = models.BigAutoField(primary_key=True)
+    """ 사용자가 특정 책에 대해 작성한 리뷰 """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
     book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name="reviews")
     content = models.TextField(null=True, blank=True)
@@ -25,9 +22,7 @@ class Review(models.Model):
 
 
 class Like(models.Model):
-    """
-    좋아요 모델 - 사용자가 특정 리뷰에 좋아요를 남길 수 있음
-    """
+    """ 특정 리뷰에 대한 좋아요 """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="likes")
 
@@ -42,9 +37,7 @@ class Like(models.Model):
 
 
 class Comment(models.Model):
-    """
-    댓글 모델 - 사용자가 리뷰에 댓글을 남길 수 있음
-    """
+    """ 특정 리뷰에 대한 댓글 """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="comments")
     content = models.TextField()
