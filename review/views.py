@@ -39,8 +39,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
                 published_date=book_data.get("pubdate", ""),
                 image_url=book_data.get("image", ""),
             )
-
-        serializer.save(user=self.request.user, book=book)
+        serializer.context['book'] = book
+        serializer.save(user=self.request.user)
 
 
 class LikeReviewView(APIView):

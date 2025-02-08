@@ -24,5 +24,3 @@ urlpatterns = [
     # ✅ API 상태 확인 엔드포인트 (이 뷰 함수가 실제로 존재하는지 확인 필요)
     path('', home, name='home'),
 ]
-
-

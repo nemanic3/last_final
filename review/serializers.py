@@ -12,6 +12,19 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ['id', 'user_nickname', 'isbn', 'content', 'rating', 'created_at', 'updated_at', 'likes_count', 'comments_count']
 
+    def create(self, validated_data):
+        # `isbn` 처리
+        isbn = validated_data.pop("isbn", None)
+        if not isbn:
+            raise serializers.ValidationError({"isbn": "ISBN이 필요합니다."})
+
+        # `perform_create`에서 처리된 `book` 객체 가져오기
+        book = self.context['book']
+
+        # 리뷰 생성
+        review = Review.objects.create(book=book, **validated_data)
+        return review
+
     def get_likes_count(self, obj):
         return obj.likes.count()
 
